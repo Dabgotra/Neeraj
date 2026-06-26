@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PerspectScan — Batch Document Scanner</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* ── TOKENS ─────────────────────────────────────────────────────────────── */
+:root {
+  /* ── Backgrounds (cool blue-black tones) */
+  --bg:        #0a0a12;
+  --surface:   #10101c;
+  --surface2:  #17172a;
+  --surface3:  #1f1f36;
+
+  /* ── Borders */
+  --border:    #28283f;
+  --border2:   #3a3a58;
+
+  /* ── Brand accent — indigo (trustworthy, technical, professional) */
+  --accent:    #6366f1;
+  --accent-l:  #818cf8;
+  --accent-d:  #4f46e5;
+  --accent-bg: rgba(99,102,241,.12);
+
+  /* ── Semantic colours */
+  --green:     #34d399;   /* success / done         */
+  --amber:     #fbbf24;   /* processing / in-flight  */
+  --red:       #f87171;   /* error                   */
+  --sky:       #38bdf8;   /* info / status values    */
+
+  /* ── Typography */
+  --text:      #f1f5f9;
+  --text2:     #94a3b8;
+  --text3:     #64748b;
+
+  /* ── Shape */
+  --radius:    6px;
+  --radius-sm: 4px;
+}
+
+/* ── RESET ──────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  background: var(--bg);
+  color: var(--text);
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── HEADER ─────────────────────────────────────────────────────────────── */
+header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.logo-img  { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+.logo-text { font-family: 'Syne', sans-serif; font-size: 1.05rem; font-weight: 800; letter-spacing: -.02em; }
+.logo-text em { color: var(--accent); font-style: normal; }
+.hdr-sep   { flex: 1; }
+#count-badge {
+  font-size: 11px; font-weight: 500; padding: 3px 10px;
+  border-radius: 20px; background: var(--surface2);
+  border: 1px solid var(--border); color: var(--text2);
+  transition: all .2s;
+}
+#count-badge.has-done { border-color: var(--green); color: var(--green); background: rgba(52,211,153,.08); }
+.chip {
+  font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 3px; background: var(--accent); color: #fff;
+}
+
+/* ── FILMSTRIP ──────────────────────────────────────────────────────────── */
+#filmstrip-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow-x: auto;
+  min-height: 76px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+#filmstrip-wrap::-webkit-scrollbar { height: 4px; }
+#filmstrip-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.filmstrip-label {
+  font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text3); writing-mode: horizontal-tb; white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.thumb {
+  position: relative; flex-shrink: 0; width: 56px; height: 56px;
+  border-radius: var(--radius); border: 2px solid var(--border);
+  cursor: pointer; overflow: hidden; background: var(--surface2);
+  transition: border-color .15s, transform .12s;
+}
+.thumb:hover  { border-color: var(--border2); transform: scale(1.06); }
+.thumb.active { border-color: var(--accent-l); box-shadow: 0 0 0 1px var(--accent-l), 0 0 12px var(--accent-bg); transform: scale(1.08); }
+.thumb img    { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.thumb .pip {
+  position: absolute; bottom: 3px; right: 3px;
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--border); border: 1.5px solid rgba(0,0,0,.5);
+}
+.thumb.done .pip       { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.thumb.processing .pip { background: var(--amber); animation: blink .8s infinite; }
+.thumb.error .pip      { background: var(--red); }
+
+.thumb .rm {
+  position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: rgba(0,0,0,.8); color: var(--text2);
+  font-size: 9px; line-height: 16px; text-align: center;
+  display: none; cursor: pointer; border: none;
+  transition: color .15s;
+}
+.thumb:hover .rm { display: block; }
+.thumb .rm:hover { color: var(--red); }
+
+.thumb-rot {
+  position: absolute; bottom: 3px; left: 3px;
+  font-size: 8px; color: var(--sky); background: rgba(0,0,0,.7);
+  padding: 1px 3px; border-radius: 2px; line-height: 1.4;
+  display: none;
+}
+.thumb.has-rotation .thumb-rot { display: block; }
+
+.add-btn {
+  flex-shrink: 0; width: 56px; height: 56px; border-radius: var(--radius);
+  border: 2px dashed var(--border); cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--text3); font-size: 1.2rem; transition: all .15s; background: transparent;
+  gap: 2px;
+}
+.add-btn:hover { border-color: var(--accent-l); color: var(--accent-l); }
+.add-btn span  { font-size: 9px; font-weight: 500; letter-spacing: .04em; }
+
+.strip-actions { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; margin-left: auto; }
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+/* ── MAIN WORKSPACE ─────────────────────────────────────────────────────── */
+.workspace {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── PANEL ──────────────────────────────────────────────────────────────── */
+.panel {
+  display: flex; flex-direction: column;
+  border-right: 1px solid var(--border);
+  min-height: 0; overflow: hidden;
+}
+.panel:last-child { border-right: none; }
+
+.panel-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 16px; height: 36px; flex-shrink: 0;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  font-size: 10px; font-weight: 600; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--text3);
+}
+.panel-head .lbl { flex: 1; }
+.panel-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); transition: all .3s; }
+.panel-dot.on { background: var(--accent-l); box-shadow: 0 0 8px var(--accent-bg); }
+
+/* Canvas area */
+.canvas-area {
+  flex: 1; position: relative; overflow: hidden;
+  background: #080810;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 0;
+}
+.grid-bg {
+  position: absolute; inset: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+canvas { max-width: 100%; max-height: 100%; display: block; }
+
+/* Drop zone */
+#drop-zone {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px;
+  cursor: pointer; transition: background .2s;
+}
+#drop-zone:hover, #drop-zone.drag-over { background: var(--accent-bg); }
+.dz-icon {
+  width: 52px; height: 52px; border-radius: 12px;
+  border: 2px dashed var(--border); display: flex; align-items: center;
+  justify-content: center; font-size: 1.4rem; transition: border-color .2s;
+}
+#drop-zone:hover .dz-icon { border-color: var(--accent-l); }
+.dz-title { font-family: 'Syne', sans-serif; font-size: .95rem; font-weight: 700; }
+.dz-sub   { font-size: 11px; color: var(--text3); }
+.dz-btns  { display: flex; gap: 8px; margin-top: 4px; }
+
+/* Overlay drop hint */
+#drop-hint {
+  position: absolute; inset: 0; display: none;
+  align-items: center; justify-content: center;
+  flex-direction: column; gap: 10px;
+  background: rgba(9,9,11,.78); backdrop-filter: blur(6px);
+  z-index: 10; pointer-events: none;
+}
+#drop-hint.show { display: flex; }
+.hint-icon  { font-size: 1.8rem; }
+.hint-label { font-family: 'Syne', sans-serif; font-size: .85rem; font-weight: 700; color: var(--accent-l); }
+
+video { display: none; position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+
+/* Empty output */
+#empty-out {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 10px; height: 100%;
+  color: var(--text3); font-size: 12px; text-align: center; line-height: 1.6;
+}
+#empty-out .arrow { font-size: 1.6rem; opacity: .2; }
+
+/* ── CONTROLS ───────────────────────────────────────────────────────────── */
+.ctrl-row {
+  display: flex; align-items: center; gap: 6px; flex-wrap: nowrap;
+  padding: 8px 14px; flex-shrink: 0;
+  background: var(--surface); border-top: 1px solid var(--border);
+}
+.ctrl-sep { width: 1px; height: 20px; background: var(--border); margin: 0 2px; flex-shrink: 0; }
+.ctrl-spacer { flex: 1; }
+
+/* Progress */
+#progress-wrap {
+  padding: 5px 14px; background: var(--surface);
+  border-top: 1px solid var(--border); flex-shrink: 0; display: none;
+}
+.progress-track { height: 2px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.progress-fill  { height: 100%; background: var(--accent-l); border-radius: 2px; width: 0; transition: width .25s; }
+.progress-lbl   { font-size: 10px; color: var(--text3); margin-top: 4px; }
+
+/* Status bar */
+.status-bar {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 14px; flex-shrink: 0;
+  background: var(--surface); border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--text3);
+  white-space: nowrap; overflow: hidden;
+}
+.status-bar b  { color: var(--text2); font-weight: 500; }
+.status-val    { color: var(--sky); overflow: hidden; text-overflow: ellipsis; }
+
+/* ── BUTTONS ────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: inherit; font-size: 11px; font-weight: 600;
+  letter-spacing: .02em; padding: 6px 12px;
+  border-radius: var(--radius-sm); border: none;
+  cursor: pointer; transition: all .15s; white-space: nowrap; flex-shrink: 0;
+}
+.btn:disabled { opacity: .3; cursor: not-allowed; transform: none !important; }
+
+.btn-accent  { background: var(--accent); color: #fff; }
+.btn-accent:hover:not(:disabled)  { background: var(--accent-l); transform: translateY(-1px); }
+.btn-green   { background: var(--green); color: #000; }
+.btn-green:hover:not(:disabled)   { background: #6ee7b7; transform: translateY(-1px); }
+.btn-outline { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+.btn-outline:hover:not(:disabled) { border-color: var(--border2); color: var(--text); }
+.btn-ghost   { background: transparent; color: var(--text3); border: 1px solid transparent; }
+.btn-ghost:hover:not(:disabled)   { color: var(--text2); border-color: var(--border); }
+.btn-icon    { padding: 6px 9px; }
+
+/* ── FORM CONTROLS ──────────────────────────────────────────────────────── */
+.slider-grp { display: flex; align-items: center; gap: 6px; color: var(--text3); font-size: 11px; }
+input[type=range] {
+  -webkit-appearance: none; width: 72px; height: 2px;
+  background: var(--border); border-radius: 2px; outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 12px; height: 12px;
+  border-radius: 50%; background: var(--accent); cursor: pointer;
+}
+
+select.fmt-sel {
+  font-family: inherit; font-size: 11px; font-weight: 500;
+  background: var(--surface2); color: var(--text2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 5px 8px; cursor: pointer; outline: none; transition: border-color .15s;
+}
+select.fmt-sel:hover, select.fmt-sel:focus { border-color: var(--border2); }
+
+/* Rotation display */
+.rot-display {
+  font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums;
+  color: var(--sky); background: var(--surface2);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 5px 8px; min-width: 40px; text-align: center;
+}
+
+/* Combine toggle */
+.toggle-wrap {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 500; color: var(--text2);
+  cursor: pointer; user-select: none;
+}
+.toggle-wrap input { display: none; }
+.toggle-track {
+  width: 28px; height: 15px; border-radius: 8px;
+  background: var(--border); position: relative; transition: background .2s; flex-shrink: 0;
+}
+.toggle-track::after {
+  content: ''; position: absolute;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: #fff; top: 2px; left: 2px; transition: transform .2s;
+}
+.toggle-wrap input:checked + .toggle-track { background: var(--accent); }
+.toggle-wrap input:checked + .toggle-track::after { transform: translateX(13px); }
+
+/* ── TOAST ──────────────────────────────────────────────────────────────── */
+#toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text); font-size: 12px; font-weight: 500;
+  padding: 10px 18px; border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5);
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s;
+  opacity: 0; pointer-events: none; white-space: nowrap; z-index: 999;
+}
+#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+#toast.success { border-color: var(--green); color: var(--green); background: rgba(52,211,153,.08); }
+#toast.error   { border-color: var(--red);   color: var(--red);   background: rgba(248,113,113,.08); }
+
+/* ── MOBILE ─────────────────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .workspace { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; overflow-y: auto; }
+  .panel { height: 45dvh; }
+  body { overflow: auto; }
+  .ctrl-row { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ──────────────────────────────────────────────────────────── -->
+<header>
+  <img class="logo-img" id="logo-img" alt="Logo" src="data:image/jpeg;base64,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">
+  <span class="logo-text">Perspect<em>Scan</em></span>
+  <div class="hdr-sep"></div>
+  <span id="count-badge">0 images</span>
+  <span class="chip">Batch · CV</span>
+</header>
+
+<!-- ── FILMSTRIP ────────────────────────────────────────────────────────── -->
+<div id="filmstrip-wrap">
+  <span class="filmstrip-label">Queue</span>
+  <div class="add-btn" id="thumb-add-btn" title="Add images">
+    <span>＋</span><span>ADD</span>
+  </div>
+  <!-- thumbs injected here -->
+  <div class="strip-actions">
+    <button class="btn btn-outline" id="clear-all-btn" disabled style="font-size:10px;padding:4px 10px">Clear All</button>
+  </div>
+</div>
+
+<!-- ── WORKSPACE ────────────────────────────────────────────────────────── -->
+<div class="workspace">
+
+  <!-- LEFT: SOURCE -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="lbl" id="src-panel-lbl">01 — Source</span>
+      <div class="panel-dot" id="src-dot"></div>
+    </div>
+
+    <div class="canvas-area" id="src-wrap">
+      <div class="grid-bg"></div>
+
+      <div id="drop-zone">
+        <div class="dz-icon">📄</div>
+        <div class="dz-title">Drop images here</div>
+        <div class="dz-sub">PNG · JPG · WEBP · multiple files</div>
+        <div class="dz-btns">
+          <button class="btn btn-accent" id="upload-btn">Upload Files</button>
+          <button class="btn btn-outline" id="camera-btn">📷 Camera</button>
+        </div>
+      </div>
+
+      <canvas id="src-canvas" style="display:none"></canvas>
+      <canvas id="overlay-canvas" style="position:absolute;inset:0;pointer-events:all;cursor:crosshair;display:none"></canvas>
+      <video id="video-el"></video>
+
+      <div id="drop-hint">
+        <div class="hint-icon">📥</div>
+        <div class="hint-label">Drop to add</div>
+      </div>
+    </div>
+
+    <!-- Source controls -->
+    <div class="ctrl-row">
+      <button class="btn btn-accent" id="detect-btn" disabled title="Auto-detect corners (Ctrl+D)">⚡ Detect</button>
+      <button class="btn btn-outline" id="reset-btn" disabled title="Reset corners to image edge">↺ Reset</button>
+      <div class="ctrl-sep"></div>
+      <div class="slider-grp">
+        <span>Edge</span>
+        <input type="range" id="thresh-slider" min="20" max="120" value="50">
+        <span id="thresh-val">50</span>
+      </div>
+    </div>
+    <div class="status-bar">
+      <b>SRC</b>
+      <span class="status-val" id="src-status">No image loaded</span>
+    </div>
+  </div>
+
+  <!-- RIGHT: OUTPUT -->
+  <div class="panel">
+    <div class="panel-head">
+      <span class="lbl">02 — Output</span>
+      <div class="panel-dot" id="out-dot"></div>
+    </div>
+
+    <div class="canvas-area" id="out-wrap">
+      <div class="grid-bg"></div>
+      <div id="empty-out">
+        <div class="arrow">→</div>
+        <div>Adjust corners on the left<br>then click <strong style="color:var(--text)">Apply Transform</strong></div>
+      </div>
+      <canvas id="out-canvas" style="display:none"></canvas>
+    </div>
+
+    <!-- Progress -->
+    <div id="progress-wrap">
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="progress-lbl" id="progress-label">Processing…</div>
+    </div>
+
+    <!-- Output controls row 1: transform actions -->
+    <div class="ctrl-row">
+      <button class="btn btn-accent" id="apply-btn" disabled title="Apply perspective transform (Ctrl+Enter)">✦ Apply</button>
+      <button class="btn btn-green"  id="batch-btn" disabled title="Auto-detect + transform all pending images">⚡ All</button>
+      <div class="ctrl-sep"></div>
+      <div class="slider-grp">
+        <span>Sharpen</span>
+        <input type="range" id="sharpen-slider" min="0" max="10" value="0">
+        <span id="sharpen-val">0</span>
+      </div>
+      <div class="ctrl-spacer"></div>
+      <!-- Rotation -->
+      <button class="btn btn-ghost btn-icon" id="rot-ccw-btn" disabled title="Rotate 90° counter-clockwise">↺</button>
+      <span class="rot-display" id="rot-display">0°</span>
+      <button class="btn btn-ghost btn-icon" id="rot-cw-btn"  disabled title="Rotate 90° clockwise">↻</button>
+    </div>
+
+    <!-- Output controls row 2: export actions -->
+    <div class="ctrl-row">
+      <label class="toggle-wrap" title="Combine all outputs into one file">
+        <input type="checkbox" id="combine-toggle">
+        <div class="toggle-track"></div>
+        Combine
+      </label>
+      <div class="ctrl-sep"></div>
+      <select class="fmt-sel" id="fmt-select" title="Output format">
+        <option value="png">PNG</option>
+        <option value="jpeg">JPEG</option>
+        <option value="pdf">PDF</option>
+      </select>
+      <div class="ctrl-spacer"></div>
+      <button class="btn btn-outline" id="dl-one-btn" disabled title="Save current image">↓ Save</button>
+      <button class="btn btn-outline" id="dl-all-btn" disabled title="Export all corrected images">⬇ ZIP All</button>
+    </div>
+
+    <div class="status-bar">
+      <b>OUT</b>
+      <span class="status-val" id="out-status">—</span>
+    </div>
+  </div>
+
+</div><!-- /workspace -->
+
+<!-- Toast notification -->
+<div id="toast"></div>
+
+<input type="file" id="file-input" accept="image/*" multiple style="display:none">
+
+<script>
+// ── STATE ────────────────────────────────────────────────────────────────────
+const queue   = [];   // [{id,name,img,imageW,imageH,corners,cornersImg,outputDataURL,status}]
+let activeIdx = -1;
+let dragging  = -1;
+let displayScale = 1, displayOffX = 0, displayOffY = 0;
+let cameraStream = null, captureMode = false;
+let batchRunning = false;
+
+// ── DOM ───────────────────────────────────────────────────────────────────────
+const srcCanvas    = document.getElementById('src-canvas');
+const overlayC     = document.getElementById('overlay-canvas');
+const outCanvas    = document.getElementById('out-canvas');
+const srcCtx       = srcCanvas.getContext('2d');
+const overlayCtx   = overlayC.getContext('2d');
+const outCtx       = outCanvas.getContext('2d');
+const dropZone     = document.getElementById('drop-zone');
+const fileInput    = document.getElementById('file-input');
+const uploadBtn    = document.getElementById('upload-btn');
+const cameraBtn    = document.getElementById('camera-btn');
+const detectBtn    = document.getElementById('detect-btn');
+const resetBtn     = document.getElementById('reset-btn');
+const applyBtn     = document.getElementById('apply-btn');
+const batchBtn     = document.getElementById('batch-btn');
+const dlOneBtn     = document.getElementById('dl-one-btn');
+const dlAllBtn     = document.getElementById('dl-all-btn');
+const fmtSelect    = document.getElementById('fmt-select');
+const rotCCWBtn    = document.getElementById('rot-ccw-btn');
+const rotCWBtn     = document.getElementById('rot-cw-btn');
+const rotDisplay   = document.getElementById('rot-display');
+const combineToggle= document.getElementById('combine-toggle');
+const clearAllBtn  = document.getElementById('clear-all-btn');
+const filmstrip    = document.getElementById('filmstrip-wrap');
+const thumbAddBtn  = document.getElementById('thumb-add-btn');
+const srcStatus    = document.getElementById('src-status');
+const outStatus    = document.getElementById('out-status');
+const srcDot       = document.getElementById('src-dot');
+const outDot       = document.getElementById('out-dot');
+const emptyOut     = document.getElementById('empty-out');
+const progressWrap = document.getElementById('progress-wrap');
+const progressFill = document.getElementById('progress-fill');
+const progressLabel= document.getElementById('progress-label');
+const threshSlider = document.getElementById('thresh-slider');
+const threshVal    = document.getElementById('thresh-val');
+const sharpenSlider= document.getElementById('sharpen-slider');
+const sharpenVal   = document.getElementById('sharpen-val');
+const countBadge   = document.getElementById('count-badge');
+const srcWrap      = document.getElementById('src-wrap');
+const videoEl      = document.getElementById('video-el');
+
+// ── FILE LOADING ─────────────────────────────────────────────────────────────
+uploadBtn.onclick = () => fileInput.click();
+thumbAddBtn.onclick = () => fileInput.click();
+fileInput.onchange = e => { loadFiles(Array.from(e.target.files)); fileInput.value = ''; };
+
+// Drag counter prevents flicker from entering/leaving child elements
+let dragCounter = 0;
+const dropHint = document.getElementById('drop-hint');
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('dragenter', e => {
+  e.preventDefault();
+  if(++dragCounter === 1) {
+    if(dropZone.style.display !== 'none') dropZone.classList.add('drag-over');
+    else dropHint.classList.add('visible');
+  }
+});
+document.addEventListener('dragleave', e => {
+  if(--dragCounter === 0) {
+    dropZone.classList.remove('drag-over');
+    dropHint.classList.remove('visible');
+  }
+});
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  dragCounter = 0;
+  dropZone.classList.remove('drag-over');
+  dropHint.classList.remove('visible');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+  if(!files.length) { setSrcStatus('No image files found in drop'); return; }
+  loadFiles(files);
+});
+
+function loadFiles(files) {
+  if(!files.length) return;
+  if(batchRunning) { setSrcStatus('Cannot add images while batch is running'); return; }
+  files.forEach(file => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const entry = {
+        id: Date.now() + Math.random(),
+        name: file.name.replace(/\.[^.]+$/, ''),
+        img, imageW: img.naturalWidth, imageH: img.naturalHeight,
+        corners: null, cornersImg: null, outputDataURL: null, status: 'pending', rotation: 0
+      };
+      queue.push(entry);
+      URL.revokeObjectURL(url);
+      addThumb(entry, queue.length - 1);
+      updateCounts();
+      if(activeIdx === -1) selectImage(queue.length - 1);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      setSrcStatus('Failed to load: ' + file.name + ' (unsupported or corrupt)');
+    };
+    img.src = url;
+  });
+}
+
+// ── FILMSTRIP ─────────────────────────────────────────────────────────────────
+function addThumb(entry, idx) {
+  const div = document.createElement('div');
+  div.className = 'thumb';
+  div.dataset.idx = idx;
+  div.title = `${entry.name}  (${entry.imageW}×${entry.imageH})`;
+
+  // Thumbnail image
+  const thumbImg = document.createElement('img');
+  const tc = document.createElement('canvas');
+  tc.width = 56; tc.height = 56;
+  const tx = tc.getContext('2d');
+  const s = Math.min(56/entry.imageW, 56/entry.imageH);
+  const tw = entry.imageW*s, th = entry.imageH*s;
+  tx.drawImage(entry.img, (56-tw)/2, (56-th)/2, tw, th);
+  thumbImg.src = tc.toDataURL();
+
+  const pip = document.createElement('div');
+  pip.className = 'status-pip';
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'thumb-remove';
+  removeBtn.textContent = '✕';
+  removeBtn.onclick = e => { e.stopPropagation(); removeImage(+div.dataset.idx); };
+
+  div.appendChild(thumbImg);
+  div.appendChild(pip);
+  div.appendChild(removeBtn);
+  div.onclick = () => selectImage(+div.dataset.idx);
+
+  filmstrip.insertBefore(div, filmstrip.querySelector('.strip-actions'));
+  entry._thumbEl = div;
+  setTimeout(() => div.scrollIntoView({behavior:'smooth',inline:'end',block:'nearest'}), 50);
+}
+
+function refreshThumbIndices() {
+  filmstrip.querySelectorAll('.thumb').forEach((el, i) => { el.dataset.idx = i; });
+}
+
+function removeImage(idx) {
+  if(batchRunning) return;
+  const removedEntry = queue.splice(idx, 1)[0];
+  removedEntry._thumbEl?.remove();
+  refreshThumbIndices();
+  updateCounts();
+  if(queue.length === 0) {
+    activeIdx = -1;
+    showDropZone();
+  } else if(idx === activeIdx) {
+    // Removed the active image — select nearest replacement
+    activeIdx = -1;
+    selectImage(Math.min(idx, queue.length - 1));
+  } else if(idx < activeIdx) {
+    // Removed before active — shift activeIdx down, no visual change needed
+    activeIdx--;
+    filmstrip.querySelectorAll('.thumb').forEach((el, i) => el.classList.toggle('active', i === activeIdx));
+  }
+  // idx > activeIdx: nothing changes
+}
+
+clearAllBtn.onclick = () => {
+  if(batchRunning) return;
+  queue.length = 0;
+  filmstrip.querySelectorAll('.thumb').forEach(el => el.remove());
+  activeIdx = -1;
+  updateCounts();
+  showDropZone();
+};
+
+function updateThumbStatus(idx) {
+  const el = queue[idx]?._thumbEl;
+  if(!el) return;
+  el.className = 'thumb ' + (queue[idx].status === 'done' ? 'done' : queue[idx].status === 'processing' ? 'processing' : queue[idx].status === 'error' ? 'error' : '');
+  if(idx === activeIdx) el.classList.add('active');
+}
+
+function updateCounts() {
+  const total = queue.length;
+  const done = queue.filter(e=>e.status==='done').length;
+  countBadge.textContent = total === 0 ? '0 images' : done > 0 ? `${done}/${total} done` : `${total} image${total!==1?'s':''}`;
+  countBadge.className = 'count-badge' + (done > 0 ? ' has-done' : '');
+  clearAllBtn.disabled = total === 0;
+  batchBtn.disabled = total === 0 || batchRunning;
+  dlAllBtn.disabled = done === 0;
+  updateDlAllLabel();
+}
+
+// ── SELECT / LOAD IMAGE INTO EDITOR ──────────────────────────────────────────
+function selectImage(idx) {
+  if(idx < 0 || idx >= queue.length) return;
+  activeIdx = idx;
+
+  // Deactivate all thumbs, activate selected
+  filmstrip.querySelectorAll('.thumb').forEach((el,i) => {
+    el.classList.toggle('active', i===idx);
+  });
+
+  const entry = queue[idx];
+  dropZone.style.display='none';
+  srcCanvas.style.display = 'block';
+  overlayC.style.display = 'block';
+
+  drawSourceImage(entry);
+
+  // Show output if already processed
+  if(entry.outputDataURL) {
+    showOutput(entry.outputDataURL, entry.rotation || 0);
+    dlOneBtn.disabled = false;
+    rotCCWBtn.disabled = false; rotCWBtn.disabled = false;
+    setRotationUI(entry.rotation || 0);
+    outStatus.textContent = (entry._outSize || 'corrected') + (entry.rotation ? '  ↻ ' + entry.rotation + '°' : '');
+  } else {
+    emptyOut.style.display = 'flex';
+    outCanvas.style.display = 'none';
+    outDot.classList.remove('active');
+    outStatus.textContent = '—';
+    dlOneBtn.disabled = true;
+    rotCCWBtn.disabled = true; rotCWBtn.disabled = true;
+    setRotationUI(0);
+  }
+
+  detectBtn.disabled = false;
+  resetBtn.disabled = false;
+  applyBtn.disabled = false;
+  srcDot.classList.add('active');
+  setSrcStatus(`${entry.name} — ${entry.imageW}×${entry.imageH}px`);
+  document.getElementById('src-panel-lbl').textContent =
+    `01 — Source  [${idx+1}/${queue.length}]`;
+}
+
+function drawSourceImage(entry) {
+  const wrap = srcWrap.getBoundingClientRect();
+  const ww = Math.max(wrap.width, srcWrap.offsetWidth, 100);
+  const wh = Math.max(wrap.height, srcWrap.offsetHeight, 100);
+  const dpr = window.devicePixelRatio || 1;
+
+  const scale = Math.min(ww/entry.imageW, wh/entry.imageH, 1);
+  const dw = entry.imageW*scale, dh = entry.imageH*scale;
+  const ox = (ww-dw)/2, oy = (wh-dh)/2;
+
+  displayScale = scale; displayOffX = ox; displayOffY = oy;
+
+  srcCanvas.width = ww*dpr; srcCanvas.height = wh*dpr;
+  srcCanvas.style.width = ww+'px'; srcCanvas.style.height = wh+'px';
+  overlayC.width = ww*dpr; overlayC.height = wh*dpr;
+  overlayC.style.width = ww+'px'; overlayC.style.height = wh+'px';
+  srcCtx.setTransform(dpr,0,0,dpr,0,0);
+  overlayCtx.setTransform(dpr,0,0,dpr,0,0);
+
+  srcCtx.clearRect(0,0,ww,wh);
+  srcCtx.drawImage(entry.img, ox, oy, dw, dh);
+
+  // Restore or initialise corners
+  if(!entry.corners) {
+    const pad = 16;
+    entry.corners = [
+      {x:ox+pad, y:oy+pad}, {x:ox+dw-pad, y:oy+pad},
+      {x:ox+dw-pad, y:oy+dh-pad}, {x:ox+pad, y:oy+dh-pad}
+    ];
+    syncToImg(entry);
+  } else {
+    // Re-project from image coords
+    entry.corners = entry.cornersImg.map(c => ({
+      x: c.x*scale+ox, y: c.y*scale+oy
+    }));
+  }
+  drawOverlay(entry.corners);
+}
+
+function showDropZone() {
+  dropZone.style.display = 'flex';
+  srcCanvas.style.display = 'none';
+  overlayC.style.display = 'none';
+  srcDot.classList.remove('active');
+  emptyOut.style.display = 'flex';
+  outCanvas.style.display = 'none';
+  outDot.classList.remove('active');
+  detectBtn.disabled = true;
+  resetBtn.disabled = true;
+  applyBtn.disabled = true;
+  dlOneBtn.disabled = true;
+  setSrcStatus('No image loaded');
+  outStatus.textContent = '—';
+  rotCCWBtn.disabled = true; rotCWBtn.disabled = true;
+  setRotationUI(0);
+  document.getElementById('src-panel-lbl').textContent = '01 — Source';
+}
+
+function syncToImg(entry) {
+  entry.cornersImg = entry.corners.map(c => ({
+    x: (c.x-displayOffX)/displayScale,
+    y: (c.y-displayOffY)/displayScale
+  }));
+}
+
+// ── OVERLAY / DRAG ────────────────────────────────────────────────────────────
+const HANDLE_R = 10;
+const COLORS = ['#818cf8','#38bdf8','#34d399','#fbbf24']; // indigo sky green amber
+const LABELS = ['TL','TR','BR','BL'];
+
+function drawOverlay(corners) {
+  if(!corners) return;
+  const ctx = overlayCtx;
+  const ww = overlayC.width / (window.devicePixelRatio||1);
+  const wh = overlayC.height / (window.devicePixelRatio||1);
+  ctx.clearRect(0,0,ww,wh);
+
+  ctx.beginPath();
+  corners.forEach((c,i) => i===0 ? ctx.moveTo(c.x,c.y) : ctx.lineTo(c.x,c.y));
+  ctx.closePath();
+  ctx.fillStyle='rgba(232,255,71,0.05)'; ctx.fill();
+  ctx.strokeStyle='rgba(232,255,71,0.65)'; ctx.lineWidth=1.5; ctx.setLineDash([5,4]); ctx.stroke(); ctx.setLineDash([]);
+
+  corners.forEach((c,i) => {
+    // Edge length hint to next corner
+    const b = corners[(i+1)%4];
+    const len = Math.hypot(b.x-c.x,b.y-c.y)/displayScale;
+    const mx=(c.x+b.x)/2, my=(c.y+b.y)/2;
+    ctx.font='9px DM Mono,monospace'; ctx.fillStyle='rgba(255,255,255,0.35)';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(Math.round(len)+'px',mx,my);
+
+    // Handle
+    ctx.beginPath(); ctx.arc(c.x,c.y,HANDLE_R,0,Math.PI*2);
+    ctx.fillStyle=COLORS[i]; ctx.fill();
+    ctx.strokeStyle='#000'; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.font='bold 9px DM Mono,monospace'; ctx.fillStyle='#000';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(LABELS[i],c.x,c.y);
+  });
+}
+
+function getPos(e) { const r=overlayC.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; }
+function getTouchPos(e) { const r=overlayC.getBoundingClientRect(); return {x:e.touches[0].clientX-r.left,y:e.touches[0].clientY-r.top}; }
+function hitTest(p,corners) {
+  if(!corners) return -1;
+  for(let i=0;i<4;i++) { const c=corners[i],dx=p.x-c.x,dy=p.y-c.y; if(dx*dx+dy*dy<=(HANDLE_R+4)**2) return i; }
+  return -1;
+}
+function clamp(p) { return {x:Math.max(0,Math.min(overlayC.width/(window.devicePixelRatio||1),p.x)),y:Math.max(0,Math.min(overlayC.height/(window.devicePixelRatio||1),p.y))}; }
+
+overlayC.addEventListener('mousedown', e => { if(activeIdx<0)return; const p=getPos(e); dragging=hitTest(p,queue[activeIdx].corners); });
+overlayC.addEventListener('mousemove', e => {
+  if(activeIdx<0)return;
+  const p=getPos(e);
+  if(dragging>=0) { queue[activeIdx].corners[dragging]=clamp(p); syncToImg(queue[activeIdx]); drawOverlay(queue[activeIdx].corners); }
+  else overlayC.style.cursor=hitTest(p,queue[activeIdx].corners)>=0?'grab':'crosshair';
+});
+overlayC.addEventListener('mouseup',()=>dragging=-1);
+overlayC.addEventListener('mouseleave',()=>dragging=-1);
+overlayC.addEventListener('touchstart',e=>{e.preventDefault();if(activeIdx<0)return;const p=getTouchPos(e);dragging=hitTest(p,queue[activeIdx].corners);},{passive:false});
+overlayC.addEventListener('touchmove',e=>{e.preventDefault();if(dragging<0||activeIdx<0)return;queue[activeIdx].corners[dragging]=clamp(getTouchPos(e));syncToImg(queue[activeIdx]);drawOverlay(queue[activeIdx].corners);},{passive:false});
+overlayC.addEventListener('touchend',()=>dragging=-1);
+
+// ── AUTO-DETECT ───────────────────────────────────────────────────────────────
+detectBtn.onclick = () => {
+  if(activeIdx<0) return;
+  setSrcStatus('Running edge detection…');
+  detectBtn.disabled = true;
+  setTimeout(() => {
+    try {
+      const corners = autoDetect(queue[activeIdx]);
+      if(corners) {
+        queue[activeIdx].cornersImg = corners;
+        queue[activeIdx].corners = corners.map(c=>({x:c.x*displayScale+displayOffX,y:c.y*displayScale+displayOffY}));
+        drawOverlay(queue[activeIdx].corners);
+        setSrcStatus('Document detected — adjust corners if needed'); toast('Edges detected');
+      } else setSrcStatus('Detection failed — adjust corners manually');
+    } catch(e) { setSrcStatus('Detection error: '+e.message); }
+    detectBtn.disabled = false;
+  }, 30);
+};
+
+function autoDetect(entry) {
+  const maxDim = 800;
+  const sc = Math.min(1, maxDim/Math.max(entry.imageW,entry.imageH));
+  const sw=Math.round(entry.imageW*sc), sh=Math.round(entry.imageH*sc);
+  const tmp=document.createElement('canvas'); tmp.width=sw; tmp.height=sh;
+  tmp.getContext('2d').drawImage(entry.img,0,0,sw,sh);
+  const idata = tmp.getContext('2d').getImageData(0,0,sw,sh);
+  const gray=toGray(idata), blurred=gaussBlur(gray,sw,sh,2);
+  const t=+threshSlider.value;
+  const edges=canny(blurred,sw,sh,t,t*2.5);
+  const quad=findQuad(edges,sw,sh);
+  return quad ? quad.map(p=>({x:p.x/sc,y:p.y/sc})) : null;
+}
+
+// ── CV PIPELINE ───────────────────────────────────────────────────────────────
+function toGray(id){const d=id.data,o=new Float32Array(d.length/4);for(let i=0;i<o.length;i++)o[i]=0.299*d[i*4]+0.587*d[i*4+1]+0.114*d[i*4+2];return o;}
+function makeKernel(r){const s=r*4+1,k=new Float32Array(s),h=Math.floor(s/2);for(let i=0;i<s;i++)k[i]=Math.exp(-((i-h)**2)/(2*r*r));return k;}
+function gaussBlur(src,w,h,r){
+  const k=makeKernel(r),ks=k.length,hk=Math.floor(ks/2),tmp=new Float32Array(w*h),out=new Float32Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){let s=0,wt=0;for(let i=0;i<ks;i++){const xx=Math.max(0,Math.min(w-1,x+i-hk));s+=src[y*w+xx]*k[i];wt+=k[i];}tmp[y*w+x]=s/wt;}
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){let s=0,wt=0;for(let i=0;i<ks;i++){const yy=Math.max(0,Math.min(h-1,y+i-hk));s+=tmp[yy*w+x]*k[i];wt+=k[i];}out[y*w+x]=s/wt;}
+  return out;
+}
+function canny(img,w,h,low,high){
+  const mag=new Float32Array(w*h),ang=new Float32Array(w*h);
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+    const gx=(-img[(y-1)*w+x-1]+img[(y-1)*w+x+1]-2*img[y*w+x-1]+2*img[y*w+x+1]-img[(y+1)*w+x-1]+img[(y+1)*w+x+1]);
+    const gy=(-img[(y-1)*w+x-1]-2*img[(y-1)*w+x]-img[(y-1)*w+x+1]+img[(y+1)*w+x-1]+2*img[(y+1)*w+x]+img[(y+1)*w+x+1]);
+    mag[y*w+x]=Math.sqrt(gx*gx+gy*gy); ang[y*w+x]=Math.atan2(gy,gx);
+  }
+  const nms=new Float32Array(w*h);
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+    const m=mag[y*w+x],d=((ang[y*w+x]*180/Math.PI)%180+180)%180;
+    let q,r;
+    if(d<22.5||d>=157.5){q=mag[y*w+x+1];r=mag[y*w+x-1];}
+    else if(d<67.5){q=mag[(y+1)*w+x-1];r=mag[(y-1)*w+x+1];}
+    else if(d<112.5){q=mag[(y+1)*w+x];r=mag[(y-1)*w+x];}
+    else{q=mag[(y-1)*w+x-1];r=mag[(y+1)*w+x+1];}
+    nms[y*w+x]=(m>=q&&m>=r)?m:0;
+  }
+  const edges=new Uint8Array(w*h);
+  for(let i=0;i<w*h;i++){if(nms[i]>=high)edges[i]=2;else if(nms[i]>=low)edges[i]=1;}
+  // Hysteresis: promote only, then discard isolated weak edges
+  let changed=true;
+  while(changed){changed=false;for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){if(edges[y*w+x]===1){let ok=false;outer:for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(edges[(y+dy)*w+(x+dx)]===2){ok=true;break outer;}}if(ok){edges[y*w+x]=2;changed=true;}}}}
+  for(let i=0;i<w*h;i++)if(edges[i]===1)edges[i]=0;
+  return edges;
+}
+function findQuad(edges,w,h){
+  const step=Math.max(1,Math.floor(Math.min(w,h)/80));
+  const pts=[];
+  for(let y=0;y<h;y+=step)for(let x=0;x<w;x+=step)if(edges[y*w+x]===2)pts.push({x,y});
+  if(pts.length<4)return null;
+  const hull=convexHull(pts);
+  if(hull.length<4)return null;
+  const cx=hull.reduce((s,p)=>s+p.x,0)/hull.length;
+  const cy=hull.reduce((s,p)=>s+p.y,0)/hull.length;
+  const quads=[hull.filter(p=>p.x<=cx&&p.y<=cy),hull.filter(p=>p.x>=cx&&p.y<=cy),hull.filter(p=>p.x>=cx&&p.y>=cy),hull.filter(p=>p.x<=cx&&p.y>=cy)];
+  const scores=[p=>-p.x-p.y,p=>p.x-p.y,p=>p.x+p.y,p=>-p.x+p.y];
+  return scores.map((sc,i)=>{const pool=quads[i].length?quads[i]:hull;return pool.reduce((b,p)=>sc(p)>sc(b)?p:b,pool[0]);});
+}
+function convexHull(pts){
+  if(pts.length<3)return pts;
+  const s=[...pts].sort((a,b)=>a.x-b.x||a.y-b.y);
+  const h=[];
+  for(const p of s){while(h.length>=2&&cross(h[h.length-2],h[h.length-1],p)<=0)h.pop();h.push(p);}
+  const lo=h.length;
+  for(let i=s.length-2;i>=0;i--){const p=s[i];while(h.length>lo&&cross(h[h.length-2],h[h.length-1],p)<=0)h.pop();h.push(p);}
+  h.pop();return h;
+}
+function cross(o,a,b){return(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);}
+
+// ── TRANSFORM ─────────────────────────────────────────────────────────────────
+function solveDLT(A){
+  const N=8,mat=A.map(r=>r.slice(0,N)),rhs=A.map(r=>-r[N]);
+  for(let col=0;col<N;col++){
+    let mr=col,mv=0;
+    for(let row=col;row<N;row++){const v=Math.abs(mat[row][col]);if(v>mv){mv=v;mr=row;}}
+    [mat[col],mat[mr]]=[mat[mr],mat[col]];[rhs[col],rhs[mr]]=[rhs[mr],rhs[col]];
+    const piv=mat[col][col];if(Math.abs(piv)<1e-12)continue;
+    const inv=1/piv;for(let j=col;j<N;j++)mat[col][j]*=inv;rhs[col]*=inv;
+    for(let row=0;row<N;row++){if(row===col)continue;const f=mat[row][col];if(Math.abs(f)<1e-15)continue;for(let j=col;j<N;j++)mat[row][j]-=f*mat[col][j];rhs[row]-=f*rhs[col];}
+  }
+  return [...rhs,1];
+}
+function computeH(src,dst){
+  const A=[];
+  for(let i=0;i<4;i++){const sx=src[i].x,sy=src[i].y,dx=dst[i].x,dy=dst[i].y;A.push([-sx,-sy,-1,0,0,0,dx*sx,dx*sy,dx]);A.push([0,0,0,-sx,-sy,-1,dy*sx,dy*sy,dy]);}
+  return solveDLT(A);
+}
+function bilinear(id,w,h,x,y){
+  const x0=Math.floor(x),y0=Math.floor(y),fx=x-x0,fy=y-y0;
+  function px(xi,yi){xi=Math.max(0,Math.min(w-1,xi));yi=Math.max(0,Math.min(h-1,yi));const i=(yi*w+xi)*4;return[id.data[i],id.data[i+1],id.data[i+2]];}
+  const[r00,g00,b00]=px(x0,y0),[r10,g10,b10]=px(x0+1,y0),[r01,g01,b01]=px(x0,y0+1),[r11,g11,b11]=px(x0+1,y0+1);
+  return[r00*(1-fx)*(1-fy)+r10*fx*(1-fy)+r01*(1-fx)*fy+r11*fx*fy,g00*(1-fx)*(1-fy)+g10*fx*(1-fy)+g01*(1-fx)*fy+g11*fx*fy,b00*(1-fx)*(1-fy)+b10*fx*(1-fy)+b01*(1-fx)*fy+b11*fx*fy];
+}
+function sharpen(ctx,w,h,str){
+  const d=ctx.getImageData(0,0,w,h),src=new Uint8ClampedArray(d.data),k=[-str,-str,-str,-str,1+8*str,-str,-str,-str,-str];
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=(y*w+x)*4;for(let c=0;c<3;c++){let s=0;for(let ky=0;ky<3;ky++)for(let kx=0;kx<3;kx++)s+=src[((y+ky-1)*w+(x+kx-1))*4+c]*k[ky*3+kx];d.data[i+c]=Math.max(0,Math.min(255,s));}}
+  ctx.putImageData(d,0,0);
+}
+
+function applyTransformToEntry(entry) {
+  const sc = entry.cornersImg;
+  const wA=Math.hypot(sc[2].x-sc[3].x,sc[2].y-sc[3].y),wB=Math.hypot(sc[1].x-sc[0].x,sc[1].y-sc[0].y);
+  const hA=Math.hypot(sc[1].x-sc[2].x,sc[1].y-sc[2].y),hB=Math.hypot(sc[0].x-sc[3].x,sc[0].y-sc[3].y);
+  let outW=Math.round(Math.max(wA,wB)), outH=Math.round(Math.max(hA,hB));
+  if(outW<2||outH<2) return null;
+  const MAX=2400,cap=Math.min(1,MAX/Math.max(outW,outH));
+  outW=Math.round(outW*cap); outH=Math.round(outH*cap);
+
+  const dst=[{x:0,y:0},{x:outW-1,y:0},{x:outW-1,y:outH-1},{x:0,y:outH-1}];
+  const H=computeH(dst,sc);
+
+  // Offscreen source
+  const srcOff=document.createElement('canvas');
+  srcOff.width=entry.imageW; srcOff.height=entry.imageH;
+  srcOff.getContext('2d').drawImage(entry.img,0,0);
+  const srcData=srcOff.getContext('2d').getImageData(0,0,entry.imageW,entry.imageH);
+
+  const oc=document.createElement('canvas'); oc.width=outW; oc.height=outH;
+  const ox=oc.getContext('2d');
+  const od=ox.createImageData(outW,outH);
+  for(let y=0;y<outH;y++)for(let x=0;x<outW;x++){
+    const w_=H[6]*x+H[7]*y+H[8];
+    const sx=(H[0]*x+H[1]*y+H[2])/w_, sy=(H[3]*x+H[4]*y+H[5])/w_;
+    const col=bilinear(srcData,entry.imageW,entry.imageH,sx,sy);
+    const idx=(y*outW+x)*4; od.data[idx]=col[0]; od.data[idx+1]=col[1]; od.data[idx+2]=col[2]; od.data[idx+3]=255;
+  }
+  ox.putImageData(od,0,0);
+  const sv=+sharpenSlider.value;
+  if(sv>0) sharpen(ox,outW,outH,sv/10);
+  return {dataURL: oc.toDataURL('image/png'), w:outW, h:outH};
+}
+
+// ── SINGLE APPLY ──────────────────────────────────────────────────────────────
+applyBtn.onclick = () => {
+  if(activeIdx<0) return;
+  const entry = queue[activeIdx];
+  if(!entry.cornersImg) return;
+  applyBtn.disabled = true;
+  setSrcStatus('Applying transform…');
+  setTimeout(() => {
+    const result = applyTransformToEntry(entry);
+    if(result) {
+      entry.outputDataURL = result.dataURL;
+      entry._outSize = `${result.w}×${result.h}px`;
+      entry.status = 'done';
+      updateThumbStatus(activeIdx);
+      updateCounts();
+      entry.rotation = entry.rotation || 0;
+      showOutput(result.dataURL, entry.rotation);
+      outStatus.textContent = entry._outSize + (entry.rotation ? '  ↻ ' + entry.rotation + '°' : '');
+      dlOneBtn.disabled = false;
+      rotCCWBtn.disabled = false; rotCWBtn.disabled = false;
+      setSrcStatus('Transform applied ✓'); toast('Transform applied', 'success');
+    } else {
+      setSrcStatus('Transform failed — check corner positions');
+    }
+    applyBtn.disabled = false;
+  }, 30);
+};
+
+function showOutput(dataURL, rotation) {
+  const snapshotIdx = activeIdx;
+  rotation = rotation || 0;
+  const img = new Image();
+  img.onload = () => {
+    if(activeIdx !== snapshotIdx) return;
+    const sw = img.naturalWidth, sh = img.naturalHeight;
+    const swap = rotation === 90 || rotation === 270;
+    outCanvas.width  = swap ? sh : sw;
+    outCanvas.height = swap ? sw : sh;
+    outCtx.save();
+    outCtx.translate(outCanvas.width/2, outCanvas.height/2);
+    outCtx.rotate(rotation * Math.PI / 180);
+    outCtx.drawImage(img, -sw/2, -sh/2);
+    outCtx.restore();
+    emptyOut.style.display = 'none';
+    outCanvas.style.display = 'block';
+    outDot.classList.add('active');
+  };
+  img.onerror = () => { if(activeIdx === snapshotIdx) outStatus.textContent = 'Error rendering output'; };
+  img.src = dataURL;
+}
+
+// ── BATCH PROCESS ALL ─────────────────────────────────────────────────────────
+batchBtn.onclick = async () => {
+  if(batchRunning) return;
+  batchRunning = true;
+  batchBtn.disabled = true;
+  applyBtn.disabled = true;
+  progressWrap.style.display = 'block';
+
+  const pending = queue.filter(e => e.status !== 'done');
+  let done = 0;
+
+  try {
+  for(const entry of pending) {
+    const idx = queue.indexOf(entry);
+    entry.status = 'processing';
+    updateThumbStatus(idx);
+
+    progressFill.style.width = (done/pending.length*100)+'%';
+    progressLabel.textContent = `Processing ${done+1} of ${pending.length}: ${entry.name}`;
+
+    await new Promise(res => setTimeout(() => {
+      try {
+        if(!entry.cornersImg) {
+          const corners = autoDetect(entry);
+          if(corners) {
+            entry.cornersImg = corners;
+            entry.corners = null;
+          } else {
+            const pad=10;
+            entry.cornersImg=[{x:pad,y:pad},{x:entry.imageW-pad,y:pad},{x:entry.imageW-pad,y:entry.imageH-pad},{x:pad,y:entry.imageH-pad}];
+            entry.corners = null;
+          }
+        }
+        const result = applyTransformToEntry(entry);
+        if(result) { entry.outputDataURL = result.dataURL; entry._outSize=`${result.w}×${result.h}px`; entry.status='done'; }
+        else entry.status='error';
+      } catch(err) {
+        entry.status='error';
+        console.warn('Batch error on', entry.name, err);
+      }
+      updateThumbStatus(idx);
+      done++;
+      progressFill.style.width = (done/pending.length*100)+'%';
+      res();
+    }, 20));
+  }
+
+  progressFill.style.width = '100%';
+  progressLabel.textContent = `Done — ${done} image${done!==1?'s':''} processed`;
+  setTimeout(()=>{ progressWrap.style.display='none'; },2000);
+  } finally {
+    batchRunning = false;
+    batchBtn.disabled = false;
+    applyBtn.disabled = activeIdx < 0;
+    if(activeIdx >= 0) { detectBtn.disabled = false; resetBtn.disabled = false; }
+    updateCounts();
+  }
+
+  // Refresh current view if it was just processed
+  if(activeIdx>=0 && queue[activeIdx].outputDataURL) {
+    const ae = queue[activeIdx];
+    showOutput(ae.outputDataURL, ae.rotation || 0);
+    outStatus.textContent = (ae._outSize || 'corrected') + (ae.rotation ? '  ↻ ' + ae.rotation + '°' : '');
+    dlOneBtn.disabled = false;
+    rotCCWBtn.disabled = false; rotCWBtn.disabled = false;
+  }
+};
+
+// ── DOWNLOAD ─────────────────────────────────────────────────────────────────
+dlOneBtn.onclick = async () => {
+  if(activeIdx<0||!queue[activeIdx].outputDataURL) return;
+  try {
+    dlOneBtn.disabled = true;
+    await downloadEntry(queue[activeIdx], fmtSelect.value);
+    queue[activeIdx]._downloaded = true;
+  } catch(e) {
+    outStatus.textContent = 'Download error: ' + e.message;
+  } finally {
+    dlOneBtn.disabled = false;
+  }
+};
+
+function getDataURL(entry, fmt) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const tc = document.createElement('canvas');
+      tc.width = img.naturalWidth; tc.height = img.naturalHeight;
+      tc.getContext('2d').drawImage(img, 0, 0);
+      if(fmt === 'jpeg') res(tc.toDataURL('image/jpeg', 0.92));
+      else res(tc.toDataURL('image/png'));
+    };
+    img.onerror = () => rej(new Error('Failed to load output image for re-encoding'));
+    img.src = entry.outputDataURL;
+  });
+}
+
+function loadImage(src) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = () => rej(new Error('Image failed to load'));
+    img.src = src;
+  });
+}
+
+// Returns a canvas with the image drawn at the given rotation (0/90/180/270)
+async function rotatedCanvas(dataURL, rotation, fmt) {
+  rotation = rotation || 0;
+  const img = await loadImage(dataURL);
+  const sw = img.naturalWidth, sh = img.naturalHeight;
+  const swap = rotation === 90 || rotation === 270;
+  const tc = document.createElement('canvas');
+  tc.width  = swap ? sh : sw;
+  tc.height = swap ? sw : sh;
+  const tx = tc.getContext('2d');
+  tx.save();
+  tx.translate(tc.width/2, tc.height/2);
+  tx.rotate(rotation * Math.PI / 180);
+  tx.drawImage(img, -sw/2, -sh/2);
+  tx.restore();
+  return tc;
+}
+
+async function downloadEntry(entry, fmt) {
+  const baseName = entry.name + '_corrected';
+  if(fmt === 'pdf') {
+    if(!window.jspdf) throw new Error('PDF library not loaded — check your internet connection');
+    const { jsPDF } = window.jspdf;
+    const tc = await rotatedCanvas(entry.outputDataURL, entry.rotation || 0);
+    const rotDataURL = tc.toDataURL('image/png');
+    const A4W = 595.28, A4H = 841.89;
+    const scale = Math.min(A4W / tc.width, A4H / tc.height);
+    const pw = tc.width * scale, ph = tc.height * scale;
+    const pdf = new jsPDF({ orientation: pw > ph ? 'landscape' : 'portrait', unit: 'pt', format: [pw, ph] });
+    pdf.addImage(rotDataURL, 'PNG', 0, 0, pw, ph);
+    pdf.save(baseName + '.pdf');
+  } else {
+    const dataURL = await getDataURL(entry, fmt);
+    const ext = fmt === 'jpeg' ? 'jpg' : fmt;
+    const a = document.createElement('a');
+    a.href = dataURL; a.download = baseName + '.' + ext; a.click();
+  }
+}
+
+dlAllBtn.onclick = async () => {
+  const done = queue.filter(e => e.status === 'done');
+  if(!done.length) return;
+  const fmt     = fmtSelect.value;
+  const combine = combineToggle.checked;
+  dlAllBtn.disabled = true;
+  dlAllBtn.textContent = '⏳ Working…';
+  try {
+    const A4W = 595.28, A4H = 841.89;
+    if(fmt === 'pdf') {
+      if(!window.jspdf) throw new Error('PDF library not loaded — check your internet connection');
+      const { jsPDF } = window.jspdf;
+      if(combine) {
+        // Contact-sheet: all images tiled in a grid on A4
+        const COLS = Math.ceil(Math.sqrt(done.length));
+        const ROWS = Math.ceil(done.length / COLS);
+        const cellW = A4W / COLS, cellH = A4H / ROWS;
+        const pdf = new jsPDF({ orientation:'portrait', unit:'pt', format:'a4' });
+        for(let i = 0; i < done.length; i++) {
+          const tc = await rotatedCanvas(done[i].outputDataURL, done[i].rotation || 0);
+          const sc = Math.min(cellW / tc.width, cellH / tc.height) * 0.92;
+          const pw = tc.width * sc, ph = tc.height * sc;
+          const col = i % COLS, row = Math.floor(i / COLS);
+          pdf.addImage(tc.toDataURL('image/jpeg', 0.85), 'JPEG',
+            col * cellW + (cellW - pw) / 2, row * cellH + (cellH - ph) / 2, pw, ph);
+        }
+        pdf.save('perspect_combined.pdf');
+      } else {
+        // One page per image (multi-page PDF with rotation applied)
+        const tc0 = await rotatedCanvas(done[0].outputDataURL, done[0].rotation || 0);
+        const s0  = Math.min(A4W / tc0.width, A4H / tc0.height);
+        const pdf = new jsPDF({
+          orientation: tc0.width * s0 > tc0.height * s0 ? 'landscape' : 'portrait',
+          unit: 'pt', format: [tc0.width * s0, tc0.height * s0]
+        });
+        for(let i = 0; i < done.length; i++) {
+          const tc    = await rotatedCanvas(done[i].outputDataURL, done[i].rotation || 0);
+          const scale = Math.min(A4W / tc.width, A4H / tc.height);
+          const pw = tc.width * scale, ph = tc.height * scale;
+          if(i > 0) pdf.addPage([pw, ph], pw > ph ? 'landscape' : 'portrait');
+          pdf.addImage(tc.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, pw, ph);
+        }
+        pdf.save('perspect_pages.pdf');
+      }
+    } else {
+      // PNG / JPEG
+      const ext = fmt === 'jpeg' ? 'jpg' : 'png';
+      if(combine) {
+        // Stitch all images vertically into one tall canvas
+        const canvases = await Promise.all(done.map(e => rotatedCanvas(e.outputDataURL, e.rotation || 0)));
+        const maxW   = Math.max(...canvases.map(cv => cv.width));
+        const totalH = canvases.reduce((s, cv) => s + cv.height, 0);
+        const stitched = document.createElement('canvas');
+        stitched.width = maxW; stitched.height = totalH;
+        const sx = stitched.getContext('2d');
+        let y = 0;
+        for(const cv of canvases) {
+          sx.drawImage(cv, Math.round((maxW - cv.width) / 2), y);
+          y += cv.height;
+        }
+        const dataURL = fmt === 'jpeg' ? stitched.toDataURL('image/jpeg', 0.92) : stitched.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = dataURL; a.download = 'perspect_combined.' + ext; a.click();
+      } else {
+        // Individual files in a ZIP
+        const zip = new JSZip();
+        for(const e of done) {
+          const dataURL = await getDataURL(e, fmt);
+          zip.file(e.name + '_corrected.' + ext, dataURL.split(',')[1], { base64: true });
+        }
+        const blob = await zip.generateAsync({ type:'blob', compression:'DEFLATE' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url; a.download = 'perspect_corrected.zip'; a.click();
+        URL.revokeObjectURL(url);
+      }
+    }
+    done.forEach(e => e._downloaded = true);
+  } catch(e) {
+    outStatus.textContent = 'Export error: ' + e.message; toast('Export error: '+e.message,'error');
+  } finally {
+    dlAllBtn.disabled = done.length === 0;
+    updateDlAllLabel();
+  }
+};
+
+// ── RESET ─────────────────────────────────────────────────────────────────────
+resetBtn.onclick = () => {
+  if(activeIdx<0) return;
+  const entry=queue[activeIdx];
+  entry.corners=null; entry.cornersImg=null;
+  drawSourceImage(entry);
+  setSrcStatus('Corners reset');
+};
+
+// ── CAMERA ────────────────────────────────────────────────────────────────────
+cameraBtn.onclick = async () => {
+  if(captureMode) { captureFromCamera(); return; }
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    videoEl.srcObject = cameraStream;
+    videoEl.style.display = 'block';
+    srcCanvas.style.display = 'none'; overlayC.style.display = 'none'; dropZone.style.display='none';
+    await videoEl.play();
+    cameraBtn.textContent = '📸 Capture'; captureMode = true;
+    setSrcStatus('Position document in frame — click Capture when ready');
+  } catch(e) {
+    // Restore UI if camera failed at any point after hiding canvases
+    stopCamera();
+    if(activeIdx >= 0) { srcCanvas.style.display='block'; overlayC.style.display='block'; }
+    else dropZone.style.display='';
+    setSrcStatus('Camera error: ' + e.message);
+  }
+};
+function captureFromCamera() {
+  if(!videoEl.videoWidth || !videoEl.videoHeight) { setSrcStatus('Camera not ready — try again'); return; }
+  const tc=document.createElement('canvas'); tc.width=videoEl.videoWidth; tc.height=videoEl.videoHeight;
+  tc.getContext('2d').drawImage(videoEl,0,0);
+  const img=new Image();
+  img.onload=()=>{
+    const entry={id:Date.now()+Math.random(),name:'capture_'+Date.now(),img,imageW:img.naturalWidth,imageH:img.naturalHeight,corners:null,cornersImg:null,outputDataURL:null,status:'pending',rotation:0};
+    queue.push(entry); addThumb(entry,queue.length-1); updateCounts();
+    stopCamera(); selectImage(queue.length-1);
+  };
+  img.src=tc.toDataURL();
+}
+function stopCamera() {
+  if(cameraStream){cameraStream.getTracks().forEach(t=>t.stop());cameraStream=null;}
+  videoEl.style.display='none'; cameraBtn.textContent='📷 Camera'; captureMode=false;
+}
+
+// ── SLIDERS ───────────────────────────────────────────────────────────────────
+threshSlider.oninput=()=>threshVal.textContent=threshSlider.value;
+sharpenSlider.oninput=()=>sharpenVal.textContent=sharpenSlider.value;
+
+// ── ROTATION ──────────────────────────────────────────────────────────────
+rotCCWBtn.onclick = () => rotateActive(-90);
+rotCWBtn.onclick  = () => rotateActive(90);
+
+function rotateActive(deg) {
+  if(activeIdx < 0 || !queue[activeIdx].outputDataURL) return;
+  const entry = queue[activeIdx];
+  entry.rotation = ((entry.rotation || 0) + deg + 360) % 360;
+  rotDisplay.textContent = entry.rotation + '°';
+  showOutput(entry.outputDataURL, entry.rotation);
+  outStatus.textContent = (entry._outSize || '') + (entry.rotation ? '  ↻ ' + entry.rotation + '°' : '');
+}
+
+function setRotationUI(rotation) {
+  rotDisplay.textContent = (rotation || 0) + '°';
+}
+
+// ── COMBINE TOGGLE ────────────────────────────────────────────────────────
+combineToggle.onchange = updateDlAllLabel;
+function updateDlAllLabel() {
+  const fmt     = fmtSelect ? fmtSelect.value : 'png';
+  const combine = combineToggle ? combineToggle.checked : false;
+  if(fmt === 'pdf')
+    dlAllBtn.textContent = combine ? '⬇ Contact PDF' : '⬇ Multi-page PDF';
+  else
+    dlAllBtn.textContent = combine ? '⬇ Combined Image' : '⬇ ZIP All';
+}
+fmtSelect.onchange = updateDlAllLabel;
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function setSrcStatus(msg){srcStatus.textContent=msg;}
+// ── TOAST ────────────────────────────────────────────────────────────────────
+const toastEl = document.getElementById('toast');
+let toastTimer;
+function toast(msg, type='') {
+  toastEl.textContent = msg;
+  toastEl.className = 'show' + (type ? ' '+type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toastEl.className = ''; }, 2800);
+}
+
+
+// ── KEYBOARD SHORTCUTS ───────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if(e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if((e.ctrlKey||e.metaKey) && e.key==='d') { e.preventDefault(); if(!detectBtn.disabled) detectBtn.click(); }
+  if((e.ctrlKey||e.metaKey) && e.key==='Enter') { e.preventDefault(); if(!applyBtn.disabled) applyBtn.click(); }
+  if(!batchRunning && e.key==='ArrowRight' && activeIdx < queue.length-1) selectImage(activeIdx+1);
+  if(!batchRunning && e.key==='ArrowLeft'  && activeIdx > 0)              selectImage(activeIdx-1);
+  if(e.key==='Escape' && captureMode) stopCamera();
+});
+
+// ── BEFOREUNLOAD GUARD ────────────────────────────────────────────────────────
+window.addEventListener('beforeunload', e => {
+  if(batchRunning || queue.some(en=>en.status==='done'&&!en._downloaded)) {
+    e.preventDefault();
+    return e.returnValue = "You have unsaved corrected images. Leave anyway?";
+  }
+});
+
+// ── RESIZE ────────────────────────────────────────────────────────────────────
+let resizeTimer;
+window.addEventListener('resize',()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(()=>{ if(activeIdx>=0) drawSourceImage(queue[activeIdx]); },200);
+});
+</script>
+</body>
+</html>
