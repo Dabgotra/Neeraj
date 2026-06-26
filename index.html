@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neeraj Dabgotra — Toolmaker. Offline-first software, built in Vijaypur, J&K.</title>
+<meta name="description" content="Neeraj Dabgotra builds offline-first web tools — document scanners, PDF engines, tax calculators — for The Computer Services, Vijaypur, J&K. No cloud. No tracking. Runs on a phone with no signal.">
+<link rel="canonical" href="https://marvelous-begonia-25c814.netlify.app/">
+<meta name="robots" content="index, follow">
+<meta name="author" content="Neeraj Dabgotra">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Neeraj Dabgotra — Toolmaker, Vijaypur, J&K">
+<meta property="og:description" content="Offline-first web tools — document scanners, PDF engines, tax calculators. No cloud. No tracking. Built one customer problem at a time.">
+<meta property="og:url" content="https://marvelous-begonia-25c814.netlify.app/">
+<meta property="og:locale" content="en_IN">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Neeraj Dabgotra — Toolmaker, Vijaypur, J&K">
+<meta name="twitter:description" content="Offline-first web tools built in rural J&K — no cloud, no tracking, no internet required.">
+
+<!-- Structured data for search engines -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Neeraj Dabgotra",
+  "jobTitle": "IT Solutions Expert & Software Developer",
+  "email": "dabgotra@protonmail.com",
+  "telephone": "+91-990-614-5163",
+  "url": "https://marvelous-begonia-25c814.netlify.app/",
+  "sameAs": ["https://linkedin.com/in/neerajinnovates"],
+  "worksFor": {
+    "@type": "Organization",
+    "name": "The Computer Services",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Vijaypur",
+      "addressRegion": "Samba, Jammu and Kashmir",
+      "postalCode": "184120",
+      "addressCountry": "IN"
+    }
+  },
+  "knowsAbout": ["JavaScript", "PDF Engineering", "Computer Vision", "OpenCV.js", "Offline Web Applications", "IT Support", "Network Troubleshooting"]
+}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,500&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F7F3EC;
+    --paper-dim:#EFE9DC;
+    --ink:#1C1B19;
+    --rust:#B8521F;
+    --rust-dim:#8F3F17;
+    --sage:#5B6B5B;
+    --kraft:#D4C5A0;
+    --kraft-line:#C7B68C;
+    --serif:'Source Serif 4', Georgia, serif;
+    --mono:'JetBrains Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--serif);
+    font-size:17px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--rust); color:var(--paper);}
+  a{color:inherit;}
+
+  /* texture: faint paper grain via layered gradients, no image request */
+  body::before{
+    content:'';
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(28,27,25,0.015) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(28,27,25,0.02) 0%, transparent 50%);
+  }
+
+  .wrap{max-width:980px; margin:0 auto; padding:0 28px; position:relative; z-index:1;}
+
+  /* ── STATUS STRIP (signature element) ── */
+  .status-strip{
+    background:var(--ink); color:var(--kraft);
+    font-family:var(--mono); font-size:11.5px; letter-spacing:0.04em;
+    padding:8px 0;
+  }
+  .status-strip .wrap{display:flex; align-items:center; gap:22px; flex-wrap:wrap;}
+  .status-dot{display:inline-block; width:7px; height:7px; border-radius:50%; background:#7C9C6B; margin-right:7px; box-shadow:0 0 6px #7C9C6B;}
+  .status-strip span.sep{opacity:0.35;}
+  @media (max-width:600px){
+    .status-strip{font-size:10px;}
+    .status-strip .wrap{gap:10px 16px;}
+    .status-strip span.sep{display:none;}
+  }
+
+  /* ── HEADER / HERO ── */
+  header.hero{padding:76px 0 64px; border-bottom:1px solid var(--kraft-line);}
+  .eyebrow{
+    font-family:var(--mono); font-size:12.5px; letter-spacing:0.12em; text-transform:uppercase;
+    color:var(--rust); margin-bottom:22px; display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{content:'§'; font-weight:700;}
+  h1{
+    font-family:var(--serif); font-weight:700; font-size:clamp(40px,6.4vw,68px);
+    line-height:1.04; letter-spacing:-0.01em; max-width:13ch;
+  }
+  h1 em{font-style:italic; color:var(--rust); font-weight:600;}
+  .hero-sub{
+    margin-top:26px; font-size:19px; color:#3A3935; max-width:54ch; line-height:1.55;
+  }
+  .hero-sub strong{color:var(--ink); font-weight:600;}
+  .hero-meta{
+    margin-top:34px; display:flex; gap:28px; flex-wrap:wrap;
+    font-family:var(--mono); font-size:13px; color:var(--sage);
+  }
+  .hero-meta a{text-decoration:none; border-bottom:1px solid var(--kraft-line); padding-bottom:2px; transition:border-color .15s, color .15s;}
+  .hero-meta a:hover{border-color:var(--rust); color:var(--rust);}
+
+  /* ── SECTION LABELS ── */
+  .section{padding:64px 0; border-bottom:1px solid var(--kraft-line);}
+  .section-label{
+    font-family:var(--mono); font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--sage); margin-bottom:10px;
+  }
+  .section h2{
+    font-family:var(--serif); font-weight:700; font-size:clamp(26px,3.6vw,36px);
+    margin-bottom:18px; max-width:24ch;
+  }
+  .section-intro{font-size:16.5px; color:#4A4945; max-width:62ch; margin-bottom:40px;}
+
+  /* ── TOOLBOX GRID ── */
+  .toolbox{display:grid; grid-template-columns:repeat(2, 1fr); gap:2px; background:var(--kraft-line); border:1px solid var(--kraft-line);}
+  @media (max-width:720px){.toolbox{grid-template-columns:1fr;}}
+  .drawer{
+    background:var(--paper); padding:30px 28px; position:relative;
+    transition:background .2s;
+  }
+  .drawer:hover{background:var(--paper-dim);}
+  .drawer-num{
+    font-family:var(--mono); font-size:11px; color:var(--kraft-line); position:absolute; top:28px; right:28px;
+  }
+  .drawer-tag{
+    display:inline-block; font-family:var(--mono); font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--rust); border:1px solid var(--rust); padding:3px 8px; margin-bottom:16px;
+  }
+  .drawer h3{font-family:var(--serif); font-weight:700; font-size:22px; margin-bottom:10px; max-width:18ch;}
+  .drawer p{font-size:14.5px; color:#4A4945; line-height:1.55; margin-bottom:18px;}
+  .drawer-stack{font-family:var(--mono); font-size:11.5px; color:var(--sage); margin-bottom:20px; line-height:1.7;}
+  .drawer-actions{display:flex; gap:14px; align-items:center;}
+  .btn-launch{
+    font-family:var(--mono); font-size:12.5px; font-weight:600; letter-spacing:0.03em;
+    background:var(--ink); color:var(--paper); text-decoration:none;
+    padding:9px 16px; display:inline-flex; align-items:center; gap:8px;
+    transition:background .15s;
+  }
+  .btn-launch:hover{background:var(--rust);}
+  .btn-launch::after{content:'→';}
+  .drawer-offline{font-family:var(--mono); font-size:11px; color:var(--sage); display:flex; align-items:center; gap:6px;}
+  .drawer-offline .status-dot{width:6px; height:6px;}
+
+  /* ── ARCHIVE LIST (remaining 14 tools, plain) ── */
+  .archive{display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; font-family:var(--mono); font-size:13.5px;}
+  @media (max-width:720px){.archive{grid-template-columns:1fr 1fr;}}
+  .archive-item{padding:13px 0; border-bottom:1px dashed var(--kraft-line); color:#3A3935;}
+  .archive-item span{color:var(--sage); display:block; font-size:11px; margin-top:2px;}
+
+  /* ── ABOUT ── */
+  .about-grid{display:grid; grid-template-columns:1.3fr 1fr; gap:56px;}
+  @media (max-width:720px){.about-grid{grid-template-columns:1fr;}}
+  .about-body p{margin-bottom:18px; font-size:16.5px; color:#312F2C;}
+  .about-body p:first-child::first-letter{
+    font-size:54px; font-weight:700; float:left; line-height:0.85; padding-right:10px; padding-top:6px;
+    color:var(--rust); font-family:var(--serif);
+  }
+  .facts{font-family:var(--mono); font-size:13px;}
+  .fact{padding:14px 0; border-top:1px solid var(--kraft-line);}
+  .fact:last-child{border-bottom:1px solid var(--kraft-line);}
+  .fact-label{color:var(--sage); display:block; font-size:11px; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:5px;}
+  .fact-val{color:var(--ink); font-size:14.5px;}
+
+  /* ── CONTACT / FOOTER ── */
+  footer{padding:64px 0 48px;}
+  .contact-cta h2{font-size:clamp(28px,4vw,40px); margin-bottom:18px; max-width:18ch;}
+  .contact-row{display:flex; gap:36px; flex-wrap:wrap; margin-top:30px; font-family:var(--mono); font-size:14px;}
+  .contact-row a{text-decoration:none; display:flex; align-items:center; gap:8px; border-bottom:1px solid transparent; padding-bottom:3px; transition:border-color .15s, color .15s;}
+  .contact-row a:hover{border-color:var(--rust); color:var(--rust);}
+  .contact-row a::before{content:'—'; color:var(--kraft-line);}
+  .footnote{margin-top:56px; font-family:var(--mono); font-size:11.5px; color:var(--sage); border-top:1px solid var(--kraft-line); padding-top:22px;}
+
+  /* focus visibility */
+  a:focus-visible, button:focus-visible{outline:2px solid var(--rust); outline-offset:3px;}
+
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto;}}
+</style>
+</head>
+<body>
+
+  <div class="status-strip">
+    <div class="wrap">
+      <span><span class="status-dot"></span>ALL SYSTEMS OFFLINE-CAPABLE</span>
+      <span class="sep">/</span>
+      <span>0 KB SENT TO ANY SERVER ON THIS PAGE</span>
+      <span class="sep">/</span>
+      <span>18 TOOLS SHIPPED · VIJAYPUR, SAMBA, J&K</span>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="eyebrow">The Computer Services — Vijaypur, Samba</div>
+      <h1>I build software that works <em>without</em> the internet.</h1>
+      <p class="hero-sub">
+        <strong>Neeraj Dabgotra</strong> — ten years fixing hardware in a town with patchy signal taught me to stop trusting the network. So every tool here is one HTML file: no install, no server, no upload. Open it on a phone with no bars and it still scans a document, edits a PDF, or runs an EPF calculation.
+      </p>
+      <div class="hero-meta">
+        <a href="#toolbox">18 tools, 4 live →</a>
+        <a href="#about">Who built this →</a>
+        <a href="mailto:dabgotra@protonmail.com">dabgotra@protonmail.com</a>
+        <a href="https://linkedin.com/in/neerajinnovates" target="_blank" rel="noopener">linkedin.com/in/neerajinnovates</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="section" id="toolbox">
+    <div class="wrap">
+      <div class="section-label">01 — The Toolbox</div>
+      <h2>Four tools, open and running. Fourteen more in the shop.</h2>
+      <p class="section-intro">Each of these is a single HTML file — drag it onto any browser, even with the WiFi off, and it works. Click a tool to open the live version; nothing is uploaded, nothing is tracked.</p>
+
+      <div class="toolbox">
+
+        <div class="drawer">
+          <span class="drawer-num">01</span>
+          <span class="drawer-tag">Computer Vision</span>
+          <h3>PerspectScan</h3>
+          <p>Points a phone camera at a crooked document and squares it up live — built on OpenCV.js, the same edge-detection math behind real flatbed scanners. Replaces a ₹15,000 scanner at the counter.</p>
+          <div class="drawer-stack">OpenCV.js · Canvas · Perspective Transform</div>
+          <div class="drawer-actions">
+            <a class="btn-launch" href="tools/perspectscan.html" target="_blank" rel="noopener">Open tool</a>
+            <span class="drawer-offline"><span class="status-dot"></span>offline-ready</span>
+          </div>
+        </div>
+
+        <div class="drawer">
+          <span class="drawer-num">02</span>
+          <span class="drawer-tag">Financial Logic</span>
+          <h3>EPFO Suite</h3>
+          <p>Recreates the EPFO's own provident-fund and income-tax math from scratch — no API, no government login needed. Walk-in customers get an exact figure in seconds, not a guess.</p>
+          <div class="drawer-stack">Custom calc engine · Form auto-fill</div>
+          <div class="drawer-actions">
+            <a class="btn-launch" href="tools/epfo-suite.html" target="_blank" rel="noopener">Open tool</a>
+            <span class="drawer-offline"><span class="status-dot"></span>offline-ready</span>
+          </div>
+        </div>
+
+        <div class="drawer">
+          <span class="drawer-num">03</span>
+          <span class="drawer-tag">Image Pipeline</span>
+          <h3>Compressly</h3>
+          <p>Shrinks photos and scans to exact file-size limits — the ones government portals demand and reject everything else for. Runs entirely on the Canvas API; the image never leaves the browser.</p>
+          <div class="drawer-stack">FileReader → Canvas → Blob</div>
+          <div class="drawer-actions">
+            <a class="btn-launch" href="tools/compressly.html" target="_blank" rel="noopener">Open tool</a>
+            <span class="drawer-offline"><span class="status-dot"></span>offline-ready</span>
+          </div>
+        </div>
+
+        <div class="drawer">
+          <span class="drawer-num">04</span>
+          <span class="drawer-tag">Flagship · 427 functions</span>
+          <h3>HyperTool</h3>
+          <p>The biggest piece in the shop — 11,000 lines unifying document utilities, QR generation, and data tools into one offline dashboard. What I reach for when one small tool isn't enough.</p>
+          <div class="drawer-stack">jsPDF · QR engine · 11,270 lines</div>
+          <div class="drawer-actions">
+            <a class="btn-launch" href="tools/hypertool.html" target="_blank" rel="noopener">Open tool</a>
+            <span class="drawer-offline"><span class="status-dot"></span>offline-ready</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="section-label">02 — The Rest of the Shop</div>
+      <h2>Fourteen more tools, built the same way.</h2>
+      <p class="section-intro">Built for daily counter work, not yet wired up for public demo — but the same single-file, no-backend approach runs underneath every one.</p>
+      <div class="archive">
+        <div class="archive-item">PDFWORK Editor <span>pdf-lib + pdf.js</span></div>
+        <div class="archive-item">PDF Compressor <span>pdf-lib</span></div>
+        <div class="archive-item">PDF ↔ Image Pro <span>Canvas pipeline</span></div>
+        <div class="archive-item">Image2PDF (Exact Size) <span>jsPDF</span></div>
+        <div class="archive-item">WhatsApp Sender ULTRA <span>2,900+ lines</span></div>
+        <div class="archive-item">Application Composer <span>Letter generation</span></div>
+        <div class="archive-item">Document Vault <span>Credential organizer</span></div>
+        <div class="archive-item">StitchKit <span>Image stitching</span></div>
+        <div class="archive-item">Collage Maker <span>Canvas layout</span></div>
+        <div class="archive-item">Signature / Thumb Resizer <span>Exact-spec sizing</span></div>
+        <div class="archive-item">Exam Photo Resizer <span>UPSC / JKSSB spec</span></div>
+        <div class="archive-item">Vidyālikhita <span>Document writer</span></div>
+        <div class="archive-item">DataTools Pro <span>204 functions</span></div>
+        <div class="archive-item">PDF → Images Enhanced <span>Batch export</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="about">
+    <div class="wrap">
+      <div class="section-label">03 — Who Built This</div>
+      <h2>From hardware counter to software shop.</h2>
+      <div class="about-grid">
+        <div class="about-body">
+          <p>Ten years ago I opened The Computer Services in Vijaypur with a screwdriver set and a soldering iron. The work was simple: fix the PC, recover the photos, set up the printer. It still is, most days.</p>
+          <p>What changed is what happens after the hardware is fixed. A customer needs a document scanned, a PF number calculated, a photo resized to a government portal's exact pixel count — and the nearest service that does it properly is an hour away, on a road with patchy signal. So I started building the tool myself, in plain HTML and JavaScript, designed to run with or without the internet.</p>
+          <p>Eighteen tools later, that habit has become the actual shop: a counter that fixes hardware and ships its own software, built one customer problem at a time.</p>
+        </div>
+        <div class="facts">
+          <div class="fact"><span class="fact-label">Based</span><span class="fact-val">Village Chandla–Jakh, Vijaypur, Samba, J&K</span></div>
+          <div class="fact"><span class="fact-label">Running The Computer Services</span><span class="fact-val">2013 — present</span></div>
+          <div class="fact"><span class="fact-label">Tools shipped</span><span class="fact-val">18 — ~36,000 lines</span></div>
+          <div class="fact"><span class="fact-label">Stack</span><span class="fact-val">HTML · CSS · JS · pdf-lib · pdf.js · OpenCV.js</span></div>
+          <div class="fact"><span class="fact-label">Certified</span><span class="fact-val">CISCO Networking · IIRS-ISRO · Google Gemini Educator</span></div>
+          <div class="fact"><span class="fact-label">Languages spoken</span><span class="fact-val">English, Hindi, Punjabi, Dogri</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <div class="contact-cta">
+        <div class="section-label">04 — Get in Touch</div>
+        <h2>Need a tool built, or a PC fixed?</h2>
+        <div class="contact-row">
+          <a href="mailto:dabgotra@protonmail.com">dabgotra@protonmail.com</a>
+          <a href="tel:+919906145163">+91 990 614 5163</a>
+          <a href="https://linkedin.com/in/neerajinnovates" target="_blank" rel="noopener">LinkedIn</a>
+        </div>
+      </div>
+      <div class="footnote">
+        Neeraj Dabgotra · The Computer Services, Vijaypur, Samba, J&K — 184120 · This page makes zero network requests after load except web fonts.
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
