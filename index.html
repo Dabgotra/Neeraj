@@ -25,13 +25,20 @@
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
+  "@graph": [
+  {
   "@type": "Person",
-  "name": "Neeraj Dabgotra",
+  "name": "Neeraj K. Dabgotra",
+  "alternateName": "The Cyber Guy",
   "jobTitle": "IT Solutions Expert & Software Developer",
   "email": "dabgotra@protonmail.com",
   "telephone": "+91-990-614-5163",
   "url": "https://dabgotra.github.io/Neeraj/",
-  "sameAs": ["https://linkedin.com/in/neerajinnovates"],
+  "sameAs": [
+    "https://linkedin.com/in/neerajinnovates",
+    "https://tcs-avi.web.app",
+    "https://dabgotra.github.io/Neeraj/"
+  ],
   "worksFor": {
     "@type": "Organization",
     "name": "The Computer Services",
@@ -44,6 +51,38 @@
     }
   },
   "knowsAbout": ["JavaScript", "PDF Engineering", "Computer Vision", "OpenCV.js", "Offline Web Applications", "IT Support", "Network Troubleshooting"]
+  },
+  {
+  "@type": "LocalBusiness",
+  "name": "The Computer Services",
+  "alternateName": "TCS — The Cyber Guy",
+  "description": "105+ government, IT and documentation services including Aadhaar, PAN, Passport, Domicile, Caste, Arms Licence, GST, ITR, and more. Operated by Neeraj K. Dabgotra.",
+  "url": "https://tcs-avi.web.app",
+  "sameAs": ["https://tcs-avi.web.app", "https://dabgotra.github.io/Neeraj/"],
+  "telephone": "+91-990-614-5163",
+  "email": "dabgotra@protonmail.com",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "NH 44, Near Gurudwara, Jakh",
+    "addressLocality": "Vijaypur",
+    "addressRegion": "Samba, Jammu and Kashmir",
+    "postalCode": "184120",
+    "addressCountry": "IN"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "addressCountry": "IN",
+    "addressRegion": "Jammu and Kashmir"
+  },
+  "openingHours": "Mo-Sa 09:00-19:00",
+  "priceRange": "₹",
+  "hasOfferCatalog": {
+    "@type": "OfferCatalog",
+    "name": "Government & IT Services",
+    "numberOfItems": 105
+  }
+  }
+  ]
 }
 </script>
 
@@ -196,7 +235,39 @@
   .contact-row a::before{content:'—'; color:var(--kraft-line);}
   .footnote{margin-top:56px; font-family:var(--mono); font-size:11.5px; color:var(--sage); border-top:1px solid var(--kraft-line); padding-top:22px;}
 
-  /* focus visibility */
+  /* ── SHOP CARD ── */
+  .shop-card{
+    display:block; text-decoration:none; color:inherit;
+    border:1px solid var(--kraft-line); background:var(--paper-dim);
+    transition:background .2s, border-color .2s;
+    padding:28px 32px;
+  }
+  .shop-card:hover{ background:var(--ink); color:var(--paper); border-color:var(--ink); }
+  .shop-card:hover .shop-tag{ color:var(--accent-light,#E8B679); border-color:var(--accent-light,#E8B679); }
+  .shop-card:hover .shop-url{ color:var(--rust); }
+  .shop-card-inner{ display:flex; justify-content:space-between; align-items:flex-start; gap:32px; flex-wrap:wrap; }
+  .shop-tag{ font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--rust); border:1px solid var(--rust); display:inline-block; padding:3px 8px; margin-bottom:12px; }
+  .shop-name{ font-family:var(--serif); font-weight:700; font-size:24px; margin-bottom:4px; }
+  .shop-aka{ font-family:var(--mono); font-size:13px; color:var(--sage); margin-bottom:10px; }
+  .shop-addr,.shop-phone{ font-family:var(--mono); font-size:13px; margin-bottom:4px; }
+  .shop-card-right{ text-align:right; }
+  .shop-stat{ font-family:var(--mono); font-size:13px; margin-bottom:10px; }
+  .shop-stat span{ display:block; font-size:28px; font-weight:700; font-family:var(--serif); line-height:1; }
+  .shop-url{ font-family:var(--mono); font-size:13px; color:var(--rust); margin-top:14px; font-weight:600; }
+
+  /* ── ENCYCLOPEDIA CALLOUT ── */
+  .enc-box{
+    border:1px solid var(--kraft-line); border-left:4px solid var(--rust);
+    padding:22px 26px; background:var(--paper-dim); margin-top:28px;
+  }
+  .enc-title{ font-family:var(--serif); font-weight:700; font-size:19px; margin-bottom:8px; }
+  .enc-sub{ font-size:14.5px; color:#4A4945; margin-bottom:14px; line-height:1.55; }
+  .enc-tags{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+  .enc-tag{ font-family:var(--mono); font-size:11px; border:1px solid var(--kraft-line); padding:3px 8px; color:var(--sage); }
+  .enc-link{ font-family:var(--mono); font-size:13px; color:var(--rust); text-decoration:none; border-bottom:1px solid var(--rust); padding-bottom:2px; }
+  .enc-link:hover{ color:var(--rust-dim); }
+
+
   a:focus-visible, button:focus-visible{outline:2px solid var(--rust); outline-offset:3px;}
 
   @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto;}}
@@ -216,14 +287,15 @@
 
   <header class="hero">
     <div class="wrap">
-      <div class="eyebrow">The Computer Services — Vijaypur, Samba</div>
+      <div class="eyebrow">The Computer Services — NH 44, Jakh, Vijaypur, Samba, J&K</div>
       <h1>I build software that works <em>without</em> the internet.</h1>
       <p class="hero-sub">
-        <strong>Neeraj Dabgotra</strong> — ten years fixing hardware in a town with patchy signal taught me to stop trusting the network. So every tool here is one HTML file: no install, no server, no upload. Open it on a phone with no bars and it still scans a document, edits a PDF, or runs an EPF calculation.
+        <strong>Neeraj K. Dabgotra — "The Cyber Guy"</strong> — ten years fixing hardware in a town with patchy signal taught me to stop trusting the network. Every tool here is one HTML file: no install, no server, no upload. Open it on a phone with no bars and it still scans a document, edits a PDF, or runs an EPF calculation. At the shop counter, same tools serve 105+ government and IT services daily.
       </p>
       <div class="hero-meta">
         <a href="#toolbox">18 tools, 4 live →</a>
         <a href="#about">Who built this →</a>
+        <a href="https://tcs-avi.web.app" target="_blank" rel="noopener">tcs-avi.web.app — Business Site →</a>
         <a href="mailto:dabgotra@protonmail.com">dabgotra@protonmail.com</a>
         <a href="https://linkedin.com/in/neerajinnovates" target="_blank" rel="noopener">linkedin.com/in/neerajinnovates</a>
       </div>
@@ -292,7 +364,31 @@
 
   <section class="section">
     <div class="wrap">
-      <div class="section-label">02 — The Rest of the Shop</div>
+      <div class="section-label">02 — The Shop</div>
+      <h2>Visit The Computer Services — 105+ services at the counter.</h2>
+      <p class="section-intro">While the tools above are built for anywhere, the actual shop is at NH 44, Jakh, Vijaypur, Samba. Walk in for Aadhaar, PAN, Passport, Domicile, Caste, Arms Licence, GST, ITR, or any of the 105+ government and IT services listed on the business site.</p>
+      <a href="https://tcs-avi.web.app" target="_blank" rel="noopener" class="shop-card">
+        <div class="shop-card-inner">
+          <div class="shop-card-left">
+            <div class="shop-tag">LIVE BUSINESS SITE</div>
+            <div class="shop-name">The Computer Services</div>
+            <div class="shop-aka">"The Cyber Guy" — Neeraj K. Dabgotra</div>
+            <div class="shop-addr">NH 44, Jakh, Vijaypur, Samba, J&K — 184120</div>
+            <div class="shop-phone">+91 990 614 5163</div>
+          </div>
+          <div class="shop-card-right">
+            <div class="shop-stat"><span>105+</span>Services listed</div>
+            <div class="shop-stat"><span>Mon–Sat</span>9 AM – 7 PM</div>
+            <div class="shop-url">tcs-avi.web.app →</div>
+          </div>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="section-label">03 — The Rest of the Shop</div>
       <h2>Fourteen more tools, built the same way.</h2>
       <p class="section-intro">Built for daily counter work, not yet wired up for public demo — but the same single-file, no-backend approach runs underneath every one.</p>
       <div class="archive">
@@ -316,16 +412,31 @@
 
   <section class="section" id="about">
     <div class="wrap">
-      <div class="section-label">03 — Who Built This</div>
+      <div class="section-label">04 — Who Built This</div>
       <h2>From hardware counter to software shop.</h2>
       <div class="about-grid">
         <div class="about-body">
           <p>Ten years ago I opened The Computer Services in Vijaypur with a screwdriver set and a soldering iron. The work was simple: fix the PC, recover the photos, set up the printer. It still is, most days.</p>
           <p>What changed is what happens after the hardware is fixed. A customer needs a document scanned, a PF number calculated, a photo resized to a government portal's exact pixel count — and the nearest service that does it properly is an hour away, on a road with patchy signal. So I started building the tool myself, in plain HTML and JavaScript, designed to run with or without the internet.</p>
           <p>Eighteen tools later, that habit has become the actual shop: a counter that fixes hardware and ships its own software, built one customer problem at a time.</p>
+
+          <div class="enc-box">
+            <div class="enc-title">📚 J&K Document Encyclopedia</div>
+            <div class="enc-sub">A free, offline-first reference covering 200+ government services across J&K UT — document requirements, fees, portals, and processing times for everything from Domicile certificates to Arms Licences. Built for the counter, free for anyone.</div>
+            <div class="enc-tags">
+              <span class="enc-tag">200+ Services</span>
+              <span class="enc-tag">Jansugam JS-01 to JS-31</span>
+              <span class="enc-tag">Aadhaar · PAN · Passport</span>
+              <span class="enc-tag">Revenue Certs</span>
+              <span class="enc-tag">Legal · Tax · Arms</span>
+              <span class="enc-tag">Offline · No backend</span>
+            </div>
+            <a class="enc-link" href="https://tcs-avi.web.app" target="_blank" rel="noopener">Available at tcs-avi.web.app →</a>
+          </div>
         </div>
         <div class="facts">
-          <div class="fact"><span class="fact-label">Based</span><span class="fact-val">Village Chandla–Jakh, Vijaypur, Samba, J&K</span></div>
+          <div class="fact"><span class="fact-label">Based</span><span class="fact-val">NH 44, Jakh, Vijaypur, Samba, J&K — 184120</span></div>
+          <div class="fact"><span class="fact-label">Business Website</span><span class="fact-val"><a href="https://tcs-avi.web.app" target="_blank" rel="noopener" style="color:var(--rust);text-decoration:none;border-bottom:1px solid var(--rust);">tcs-avi.web.app</a> — 105+ services listed</span></div>
           <div class="fact"><span class="fact-label">Running The Computer Services</span><span class="fact-val">2013 — present</span></div>
           <div class="fact"><span class="fact-label">Tools shipped</span><span class="fact-val">18 — ~36,000 lines</span></div>
           <div class="fact"><span class="fact-label">Stack</span><span class="fact-val">HTML · CSS · JS · pdf-lib · pdf.js · OpenCV.js</span></div>
@@ -339,9 +450,10 @@
   <footer>
     <div class="wrap">
       <div class="contact-cta">
-        <div class="section-label">04 — Get in Touch</div>
+        <div class="section-label">05 — Get in Touch</div>
         <h2>Need a tool built, or a PC fixed?</h2>
         <div class="contact-row">
+          <a href="https://tcs-avi.web.app" target="_blank" rel="noopener">tcs-avi.web.app — 105+ Services</a>
           <a href="mailto:dabgotra@protonmail.com">dabgotra@protonmail.com</a>
           <a href="tel:+919906145163">+91 990 614 5163</a>
           <a href="https://linkedin.com/in/neerajinnovates" target="_blank" rel="noopener">LinkedIn</a>
